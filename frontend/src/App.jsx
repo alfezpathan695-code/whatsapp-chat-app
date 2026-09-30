@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-const socket = io.connect('https://sour-pets-strive.loca.lt');
+const socket = io.connect('https://whatsapp-chat-app-48un.onrender.com');
 
 function App() {
   const [room, setRoom] = useState('');
