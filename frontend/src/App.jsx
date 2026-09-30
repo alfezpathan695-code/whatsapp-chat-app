@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-const socket = io.connect('https://whatsapp-chat-app-48un.onrender.com');
+let socket; // Socket ko yahan declare kiya taaki baad me connect kar sakein
 
 function App() {
   const [room, setRoom] = useState('');
+  const [secretKey, setSecretKey] = useState(''); // Secret Key ke liye state
   const [joined, setJoined] = useState(false);
   const [message, setMessage] = useState('');
   const [messageList, setMessageList] = useState([]);
@@ -19,10 +20,25 @@ function App() {
     scrollToBottom();
   }, [messageList]);
 
+  // Room join karne par socket connect hoga aur token pass hoga
   const joinRoom = () => {
-    if (room !== '') {
+    if (room !== '' && secretKey !== '') {
+      // Yahan socket connect hoga aur Render par set ki gayi secret key auth me jayegi
+      socket = io.connect('https://whatsapp-chat-app-48un.onrender.com', {
+        auth: {
+          token: secretKey, // Jo password aap samne wale ko doge, wo yahan enter karega
+        },
+      });
+
       socket.emit('join_room', room);
       setJoined(true);
+
+      // Listen for incoming messages
+      socket.on('receive_message', (data) => {
+        setMessageList((list) => [...list, data]);
+      });
+    } else {
+      alert("Kripya Room ID aur Secret Key dono daalein!");
     }
   };
 
@@ -42,35 +58,32 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const handleReceiveMessage = (data) => {
-      setMessageList((list) => [...list, data]);
-    };
-
-    socket.on('receive_message', handleReceiveMessage);
-
-    return () => {
-      socket.off('receive_message', handleReceiveMessage);
-    };
-  }, []);
-
-  // Agar room join nahi kiya toh WhatsApp Jaisa Login/Room Screen dikhega
+  // Agar room join nahi kiya toh Login Screen dikhegi (Room ID + Secret Key)
   if (!joined) {
     return (
       <div style={styles.joinContainer}>
         <div style={styles.joinCard}>
-          <h2 style={{ color: '#075e54', marginBottom: '10px' }}>WhatsApp Web Clone</h2>
+          <h2 style={{ color: '#075e54', marginBottom: '10px' }}>Secure Chat App</h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-            Apna Room ID daalein ya dost ke sath share kiya gaya code yahan enter karein:
+            Room ID aur Secret Password daalein (jo aapko mila hai):
           </p>
+          
           <input
             type="text"
-            placeholder="Room ID (jaise: dost123)"
+            placeholder="Room ID (jaise: room123)"
             value={room}
             onChange={(e) => setRoom(e.target.value)}
             style={styles.joinInput}
           />
-          <br />
+          
+          <input
+            type="password"
+            placeholder="Secret Key / Password"
+            value={secretKey}
+            onChange={(e) => setSecretKey(e.target.value)}
+            style={styles.joinInput}
+          />
+          
           <button onClick={joinRoom} style={styles.joinBtn}>
             Chat Start Karein
           </button>
@@ -88,13 +101,13 @@ function App() {
           <div style={styles.avatar}>TP</div>
           <div>
             <h3 style={styles.headerTitle}>Room: {room}</h3>
-            <span style={styles.headerStatus}>online</span>
+            <span style={styles.headerStatus}>online & secure</span>
           </div>
         </div>
         <div style={styles.shareBox}>
-          <span style={{ fontSize: '12px' }}>Link Share: </span>
+          <span style={{ fontSize: '12px' }}>Info: </span>
           <button 
-            onClick={() => alert(`Room ID: ${room} apne dost ko do taaki wo bhi join kar sake!`)}
+            onClick={() => alert(`Room ID: ${room} (Password kisi ko bina bataye mat dena!)`)}
             style={styles.shareBtn}
           >
             Info
@@ -251,6 +264,7 @@ const styles = {
     gap: '8px',
   },
   messageRow: {
+    link: 'flex',
     display: 'flex',
     width: '100%',
   },
